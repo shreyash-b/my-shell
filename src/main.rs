@@ -1,32 +1,7 @@
-use std::{fs, io};
-
-struct CmdDets<'a>{
-    cmd_name: &'a str,
-    callback_fn: Box<dyn Fn(String)>
-}
+mod shell_commands;
+use shell_commands::commands;
 
 fn main(){
-    let echo_cmd = CmdDets{
-        cmd_name: "echo",
-        callback_fn: Box::new(|arg| {
-            println!("ECHO: {}", arg);
-        })
-    };
-
-    (echo_cmd.callback_fn)(String::from("value"));
-
-
-    let cat_cmd = CmdDets{
-        cmd_name: "cat",
-        callback_fn: Box::new(|arg| {
-            let file_content = fs::read_to_string(&arg)
-                .expect("unable to read file");
-            
-            println!("CAT: {}", arg);
-            println!("{}", file_content);
-        })
-    };
-
-    (cat_cmd.callback_fn)(String::from("testfile.txt"));
-
+    let filename = "/home/shreyash/testfile";
+    commands::cat_callback(String::from(filename));
 }
