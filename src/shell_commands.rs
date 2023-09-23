@@ -15,7 +15,7 @@ pub mod commands {
                 return -1;
             }
         };
-        println!("{}", file_contents);
+        eprintln!("{}", file_contents);
         return 0;
     }
 }
