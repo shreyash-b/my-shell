@@ -22,6 +22,7 @@ impl Shell {
         match cmd {
             "echo" => ret_val = commands::echo_callback(arg),
             "cat" => ret_val = commands::cat_callback(arg),
+            "ls" => ret_val = commands::ls_callback(arg),
             "exit" => ret_val = 11,
             &_ => {}
         }

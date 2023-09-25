@@ -1,8 +1,7 @@
 #[allow(dead_code, unused_variables)]
 pub mod commands {
     use std::fs;
-    pub fn echo_callback(arg: &str) -> i32{
-
+    pub fn echo_callback(arg: &str) -> i32 {
         println!("{}", arg);
         return 0;
     }
@@ -16,6 +15,16 @@ pub mod commands {
             }
         };
         eprintln!("{}", file_contents);
+        return 0;
+    }
+
+    pub fn ls_callback(arg: &str) -> i32 {
+        let paths = fs::read_dir("./").unwrap();
+
+        for path in paths {
+            println!("{}", path.unwrap().path().display())
+        }
+
         return 0;
     }
 }
