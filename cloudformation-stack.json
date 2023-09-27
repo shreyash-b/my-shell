@@ -1,0 +1,26 @@
+{
+    "Resources": {
+        "DB": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1
+                },
+                "AttributeDefinitions": [
+                    {
+                        "AttributeName": "Rollno",
+                        "AttributeType": "N"
+                    }
+                ],
+                "KeySchema": [
+                    {
+                        "AttributeName": "Rollno",
+                        "KeyType": "HASH"
+                    }
+                ],
+                "TableName": "StudentDB"
+            }
+        }
+    }
+}
