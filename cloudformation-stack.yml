@@ -1,0 +1,23 @@
+Resources:
+  DB:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      AttributeDefinitions:
+      - AttributeName: Rollno
+        AttributeType: N
+      KeySchema:
+      - AttributeName: Rollno
+        KeyType: HASH
+      TableName: StudentDB
+  LambdaFunc:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: Process-Requests
+      Handler: main
+      Runtime: provided.al2
+      Code:
+        S3Bucket: bucket-created-for-storing-lambda-function-code
+        S3Key: code.zip
