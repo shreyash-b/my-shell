@@ -1,28 +1,32 @@
+
 #[allow(dead_code, unused_variables)]
 pub mod commands {
+    use std::fmt::Write;
     use std::fs;
-    pub fn echo_callback(arg: &str) -> i32 {
-        println!("{}", arg);
+
+
+    pub fn echo_callback(out: &mut String, err: &mut String, arg: &str) -> i32 {
+        writeln!(out, "{}", arg);
         return 0;
     }
 
-    pub fn cat_callback(arg: &str) -> i32 {
+    pub fn cat_callback(out: &mut String, err: &mut String, arg: &str) -> i32 {
         let file_contents = match fs::read_to_string(&arg) {
             Ok(v) => v,
             Err(_) => {
-                println!("[ERROR] Unable to read {}", arg);
+                writeln!(err, "[ERROR] Unable to read {}", arg).unwrap();
                 return -1;
             }
         };
-        eprintln!("{}", file_contents);
+        writeln!(out, "{}", file_contents).unwrap();
         return 0;
     }
 
-    pub fn ls_callback(arg: &str) -> i32 {
+    pub fn ls_callback(out: &mut String, err: &mut String, arg: &str) -> i32 {
         let paths = fs::read_dir("./").unwrap();
 
         for path in paths {
-            println!("{}", path.unwrap().path().display())
+            writeln!(out, "{}", path.unwrap().path().display()).unwrap();
         }
 
         return 0;

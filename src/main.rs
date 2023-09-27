@@ -19,13 +19,22 @@ impl Shell {
         let cmd = input_cmd[0];
         let arg = &input_cmd[1..].join(" ");
         let mut ret_val: i32 = 0;
+
+        let mut op_out = String::new(); // stdout stream
+        let mut op_err = String::new(); // stderr stream
+
+
         match cmd {
-            "echo" => ret_val = commands::echo_callback(arg),
-            "cat" => ret_val = commands::cat_callback(arg),
-            "ls" => ret_val = commands::ls_callback(arg),
+            "echo" => ret_val = commands::echo_callback(&mut op_out, &mut op_err, arg),
+            "cat" => ret_val = commands::cat_callback(&mut op_out, &mut op_err, arg),
+            "ls" => ret_val = commands::ls_callback(&mut op_out, &mut op_err, arg),
             "exit" => ret_val = 11,
             &_ => {}
         }
+
+        write!(io::stdout(), "{}", op_out).unwrap();
+        write!(io::stderr(), "{}", op_err).unwrap();
+
         return ret_val;
         
     }
