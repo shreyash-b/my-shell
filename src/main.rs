@@ -51,6 +51,8 @@ impl Shell {
         let cmd = user_cmd.split(" | ");
 
         for c in cmd{
+            // assuming that pipe redirects output as command line argument instead of stdin for simplicity
+
             let mut execute_cmd = c.to_string();
             execute_cmd.push_str(out.as_str());
             out.clear();
