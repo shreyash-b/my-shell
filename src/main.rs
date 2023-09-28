@@ -1,5 +1,5 @@
 use shell_commands::commands;
-use std::io::{self, Write};
+use std::{io::{self, Write}, fs::OpenOptions};
 
 mod shell_commands;
 
@@ -33,6 +33,22 @@ impl Shell {
         return ret_val;
     }
 
+    fn append_to_file(&self, _out: &mut String, err: &mut String, arg: Vec<&str>){
+        let file_name = arg[1];
+        let text = arg[2..].join(" ");
+
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(file_name)
+            .expect("Failed to perform operation");
+
+        file.write_all(text.as_bytes())
+            .expect("Failed");
+
+        
+    }
+
     fn parse(&self, user_cmd: String) -> i32 {
 
         let mut out = String::new(); // stdout stream
@@ -58,6 +74,11 @@ impl Shell {
             out.clear();
             err.clear();
             ret_val = self.command_executor(&mut out, &mut err, execute_cmd);
+        }
+
+        if user_cmd.contains(">>"){
+            let input = user_cmd.split_ascii_whitespace().collect::<Vec<_>>();
+            self.append_to_file(&mut out, &mut err, input);
         }
 
         write!(io::stdout(), "{}", out).unwrap();
