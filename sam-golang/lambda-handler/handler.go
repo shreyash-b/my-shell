@@ -16,7 +16,7 @@ type Student struct {
 	Name	    string `json:"Name"`
 }
 
-func getStudents(request events.APIGatewayProxyRequest, dynoClient dynamodb.DynamoDB, tableName string) (events.APIGatewayProxyResponse) {
+func getStudent(request events.APIGatewayProxyRequest, dynoClient dynamodb.DynamoDB, tableName string) (events.APIGatewayProxyResponse) {
 	rollno := request.QueryStringParameters["rollno"]
 
 	result, err := dynoClient.GetItem(&dynamodb.GetItemInput{

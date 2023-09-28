@@ -24,7 +24,7 @@ func lambdaHandler(ctx context.Context, request events.APIGatewayProxyRequest) (
 
 	switch request.HTTPMethod{
 	case "GET":
-		return getStudents(request, *dynoClient, tableName), nil
+		return getStudent(request, *dynoClient, tableName), nil
 	
 	case "PUT":
 		return putStudent(request, *dynoClient, tableName), nil
