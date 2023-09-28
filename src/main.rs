@@ -36,6 +36,7 @@ impl Shell {
         return ret_val;
     }
 
+
     fn parse(&self, user_cmd: String) -> i32 {
 
         let mut out = String::new(); // stdout stream
@@ -52,7 +53,7 @@ impl Shell {
 
         //pipelining
         let cmd = user_cmd.split(" | ");
-        
+        let mut to_append: bool = false;
         let mut std_out: bool = false;  // Checks the standrad ouput
         let mut std_err: bool = false;  // Checks the standrad error
 
@@ -66,7 +67,16 @@ impl Shell {
             std_err = false;
             std_out = false;
 
-            if execute_cmd.contains(">") {
+            
+
+            if execute_cmd.contains(">>"){
+                let split: Vec<&str> = execute_cmd.split(">>").collect();
+                (command, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
+                std_out = true;
+                to_append = true;
+            }
+
+            else if execute_cmd.contains(">") {
                 if execute_cmd.contains("2>&1") {
                     execute_cmd = execute_cmd.replace("2>&1", "");
                     let split: Vec<&str> = execute_cmd.split(">").collect();
@@ -79,7 +89,13 @@ impl Shell {
                     (command, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
                     std_err = true;
                 }
+                else{
+                    let split: Vec<&str> = execute_cmd.split(">").collect();
+                    (command, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
+                    std_out = true;
+                }
             }
+
             else {
                 command = execute_cmd;
             }
@@ -102,9 +118,17 @@ impl Shell {
                     content += &err;
                 }
 
-                self.handle_redirect(&mut content, path).unwrap_or_else(|why| {
-                    println!("! {:?}", why.kind());
-                });
+                if to_append == false {
+                    self.handle_redirect(&mut content, path).unwrap_or_else(|why| {
+                        println!("! {:?}", why.kind());
+                    });
+                }
+
+                else if to_append == true {
+                    self.handle_redirect_append(&mut content, path).unwrap_or_else(|why| {
+                        println!("! {:?}", why.kind());
+                    });
+                }
             }
         }
 
@@ -119,11 +143,24 @@ impl Shell {
     fn handle_redirect(&self, s: &str, path: &Path) -> io::Result<()> {     // Function to handle redirects takes content and file path as arguments
         let mut f = OpenOptions::new()
                     .create(true)
+                    .truncate(true)
                     .write(true)
                     .open(path)?;
-    
+        
+        
         f.write_all(s.as_bytes())
     }
+
+    fn handle_redirect_append(&self, s: &str, path: &Path) -> io::Result<()> {     // Function to handle redirects takes content and file path as arguments
+        let mut f = OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(path)?;
+        
+        
+        f.write_all(s.as_bytes())
+    }
+
 
     fn run(&self) {
         
