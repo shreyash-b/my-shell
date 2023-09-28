@@ -1,6 +1,6 @@
 use shell_commands::commands;
 use std::io::{self, Write};
-use std::fs::File;
+use std::fs::OpenOptions;
 use std::path::Path;
 
 mod shell_commands;
@@ -52,30 +52,37 @@ impl Shell {
 
         //pipelining
         let cmd = user_cmd.split(" | ");
+        
+        let mut std_out: bool = false;  // Checks the standrad ouput
+        let mut std_err: bool = false;  // Checks the standrad error
 
         for c in cmd{
             // assuming that pipe redirects output as command line argument instead of stdin for simplicity
 
-            let execute_cmd = c.to_string();
+            let mut execute_cmd = c.to_string();
             let mut command = String::new();
             let mut file_path = String::from("");
-            let mut err_out = false;
 
-            
-            if execute_cmd.contains("2>&1") {
-                command = execute_cmd[..execute_cmd.find("2>&1").unwrap()-1].to_string();
-                file_path = execute_cmd[execute_cmd.find("2>&1").unwrap()+5..execute_cmd.capacity()-2].to_string();
-                err_out = true;
-            }
-            else if execute_cmd.contains("2>") {
-                command = execute_cmd[..execute_cmd.find("2>").unwrap()-1].to_string();
-                file_path = execute_cmd[execute_cmd.find("2>").unwrap()+3..execute_cmd.capacity()-2].to_string();
+            std_err = false;
+            std_out = false;
+
+            if execute_cmd.contains(">") {
+                if execute_cmd.contains("2>&1") {
+                    execute_cmd = execute_cmd.replace("2>&1", "");
+                    let split: Vec<&str> = execute_cmd.split(">").collect();
+                    (command, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
+                    std_err = true;
+                    std_out = true;
+                }
+                else if execute_cmd.contains("2>") {
+                    let split: Vec<&str> = execute_cmd.split("2>").collect();
+                    (command, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
+                    std_err = true;
+                }
             }
             else {
                 command = execute_cmd;
             }
-
-
 
             command.push_str(out.as_str());
             out.clear();
@@ -83,33 +90,39 @@ impl Shell {
             ret_val = self.command_executor(&mut out, &mut err, command);
 
             if !file_path.is_empty() {
-
                 let path = Path::new(&file_path);
-                let display = path.display();
 
-                let mut file = match File::create(&path) {
-                    Err(why) => panic!("couldn't create {}: {}", display, why),
-                    Ok(file) => file,
-                };
+                let mut content = String::new();
 
-                match file.write_all(err.as_bytes()) {
-                    Err(why) => panic!("couldn't write to {}: {}", display, why),
-                    Ok(_) => println!("successfully wrote to {}", display),
+                if std_out == true {
+                    content += &out;
+                }
+        
+                if std_err == true {
+                    content += &err;
                 }
 
-                if err_out == true {
-                    match file.write_all(out.as_bytes()) {
-                        Err(why) => panic!("couldn't write to {}: {}", display, why),
-                        Ok(_) => println!("successfully wrote to {}", display),
-                    }
-                }
+                self.handle_redirect(&mut content, path).unwrap_or_else(|why| {
+                    println!("! {:?}", why.kind());
+                });
             }
         }
 
-        write!(io::stdout(), "{}", out).unwrap();
-        write!(io::stderr(), "{}", err).unwrap();
+        if std_err == false {
+            write!(io::stdout(), "{}", out).unwrap();
+            write!(io::stderr(), "{}", err).unwrap();
+        }
 
         return ret_val;
+    }
+
+    fn handle_redirect(&self, s: &str, path: &Path) -> io::Result<()> {     // Function to handle redirects takes content and file path as arguments
+        let mut f = OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .open(path)?;
+    
+        f.write_all(s.as_bytes())
     }
 
     fn run(&self) {
