@@ -13,11 +13,6 @@ func main() {
 	lambda.Start(lambdaHandler);
 }
 
-type Student struct {
-	Rollno      int    `json:"Rollno"`
-	Name	    string `json:"Name"`
-}
-
 func lambdaHandler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -30,6 +25,9 @@ func lambdaHandler(ctx context.Context, request events.APIGatewayProxyRequest) (
 	switch request.HTTPMethod{
 	case "GET":
 		return getStudents(request, *dynoClient, tableName), nil
+	
+	case "PUT":
+		return putStudent(request, *dynoClient, tableName), nil
 	}
 
 	return events.APIGatewayProxyResponse{Body: "Method not allowed", StatusCode: 405}, nil
