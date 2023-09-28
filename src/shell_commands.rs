@@ -6,7 +6,7 @@ pub mod commands {
 
 
     pub fn echo_callback(out: &mut String, err: &mut String, arg: &str) -> i32 {
-        writeln!(out, "{}", arg);
+        writeln!(out, "{}", arg).expect("Unable to write");
         return 0;
     }
 

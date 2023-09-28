@@ -1,5 +1,7 @@
 use shell_commands::commands;
-use std::{io::{self, Write}, fs::OpenOptions};
+use std::io::{self, Write};
+use std::fs::OpenOptions;
+use std::path::Path;
 
 mod shell_commands;
 
@@ -7,6 +9,7 @@ struct Shell {
     shell_prefix: String,
 }
 
+#[allow(unused_assignments)]
 impl Shell {
     fn new(prefix: String) -> Self {
         return Shell {
@@ -33,21 +36,6 @@ impl Shell {
         return ret_val;
     }
 
-    fn append_to_file(&self, _out: &mut String, err: &mut String, arg: Vec<&str>){
-        let file_name = arg[1];
-        let text = arg[2..].join(" ");
-
-        let mut file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(file_name)
-            .expect("Failed to perform operation");
-
-        file.write_all(text.as_bytes())
-            .expect("Failed");
-
-        
-    }
 
     fn parse(&self, user_cmd: String) -> i32 {
 
@@ -65,27 +53,114 @@ impl Shell {
 
         //pipelining
         let cmd = user_cmd.split(" | ");
+        let mut to_append: bool = false;
+        let mut std_out: bool = false;  // Checks the standrad ouput
+        let mut std_err: bool = false;  // Checks the standrad error
 
         for c in cmd{
             // assuming that pipe redirects output as command line argument instead of stdin for simplicity
 
             let mut execute_cmd = c.to_string();
-            execute_cmd.push_str(out.as_str());
+            let mut command = String::new();
+            let mut file_path = String::from("");
+
+            std_err = false;
+            std_out = false;
+
+            
+
+            if execute_cmd.contains(">>"){
+                let split: Vec<&str> = execute_cmd.split(">>").collect();
+                (command, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
+                std_out = true;
+                to_append = true;
+            }
+
+            else if execute_cmd.contains(">") {
+                if execute_cmd.contains("2>&1") {
+                    execute_cmd = execute_cmd.replace("2>&1", "");
+                    let split: Vec<&str> = execute_cmd.split(">").collect();
+                    (command, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
+                    std_err = true;
+                    std_out = true;
+                }
+                else if execute_cmd.contains("2>") {
+                    let split: Vec<&str> = execute_cmd.split("2>").collect();
+                    (command, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
+                    std_err = true;
+                }
+                else{
+                    let split: Vec<&str> = execute_cmd.split(">").collect();
+                    (command, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
+                    std_out = true;
+                }
+            }
+
+            else {
+                command = execute_cmd;
+            }
+
+            command.push_str(out.as_str());
             out.clear();
             err.clear();
-            ret_val = self.command_executor(&mut out, &mut err, execute_cmd);
+            ret_val = self.command_executor(&mut out, &mut err, command);
+
+            if !file_path.is_empty() {
+                let path = Path::new(&file_path);
+
+                let mut content = String::new();
+
+                if std_out == true {
+                    content += &out;
+                }
+        
+                if std_err == true {
+                    content += &err;
+                }
+
+                if to_append == false {
+                    self.handle_redirect(&mut content, path).unwrap_or_else(|why| {
+                        println!("! {:?}", why.kind());
+                    });
+                }
+
+                else if to_append == true {
+                    self.handle_redirect_append(&mut content, path).unwrap_or_else(|why| {
+                        println!("! {:?}", why.kind());
+                    });
+                }
+            }
         }
 
-        if user_cmd.contains(">>"){
-            let input = user_cmd.split_ascii_whitespace().collect::<Vec<_>>();
-            self.append_to_file(&mut out, &mut err, input);
+        if std_err == false {
+            write!(io::stdout(), "{}", out).unwrap();
+            write!(io::stderr(), "{}", err).unwrap();
         }
-
-        write!(io::stdout(), "{}", out).unwrap();
-        write!(io::stderr(), "{}", err).unwrap();
 
         return ret_val;
     }
+
+    fn handle_redirect(&self, s: &str, path: &Path) -> io::Result<()> {     // Function to handle redirects takes content and file path as arguments
+        let mut f = OpenOptions::new()
+                    .create(true)
+                    .truncate(true)
+                    .write(true)
+                    .open(path)?;
+        
+        
+        f.write_all(s.as_bytes())
+    }
+
+    fn handle_redirect_append(&self, s: &str, path: &Path) -> io::Result<()> {     // Function to handle redirects takes content and file path as arguments
+        let mut f = OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(path)?;
+        
+        
+        f.write_all(s.as_bytes())
+    }
+
 
     fn run(&self) {
         
