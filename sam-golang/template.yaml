@@ -33,13 +33,19 @@ Resources:
           Type: Api
           Properties:
             Path: /addStudent
-            Method: Put
+            Method: PUT
 
         DeleteStudent:
           Type: Api
           Properties:
             Path: /deleteStudent
             Method: DELETE
+          
+        UpdateStudent:
+          Type: Api
+          Properties:
+            Path: /updateStudent
+            Method: POST
 
     Policies:
       - Action: "dynamodb:*"
@@ -52,7 +58,7 @@ Outputs:
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   StudentApi:
     Description: "API Gateway endpoint URL for Prod environment for First Function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/"
   LambdaHandlerFunction:
     Description: "First Lambda Function ARN"
     Value: !GetAtt LambdaHandlerFunction.Arn

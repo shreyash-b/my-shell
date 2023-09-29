@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"strconv"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,8 +10,8 @@ import (
 )
 
 type Student struct {
-	Rollno int    `json:"Rollno"`
-	Name   string `json:"Name"`
+	Rollno string    `json:"Rollno"`
+	Name   string `json:"SName"`
 }
 
 func getStudent(request events.APIGatewayProxyRequest, dynoClient dynamodb.DynamoDB, tableName string) events.APIGatewayProxyResponse {
@@ -43,24 +42,21 @@ func getStudent(request events.APIGatewayProxyRequest, dynoClient dynamodb.Dynam
 }
 
 func putStudent(request events.APIGatewayProxyRequest, dynoClient dynamodb.DynamoDB, tableName string) events.APIGatewayProxyResponse {
-	rollno, err := strconv.Atoi(request.QueryStringParameters["rollno"])
-	name := request.QueryStringParameters["name"]
+	json_data:= Student{}
+	// json.Unmarshal(string.NewReader(request.Body))
+	json.Unmarshal([]byte(request.Body), &json_data)
 
-	if err != nil {
-		return events.APIGatewayProxyResponse{
-			Body:       "Unable to parse rollno: " + err.Error(),
-			StatusCode: 400,
-		}
-	}
-
+	rollno := json_data.Rollno
+	student_name := json_data.Name
+	
 	curr_student := Student{
 		Rollno: rollno,
-		Name:   name,
+		Name:   student_name,
 	}
-
+	
 	item, _ := dynamodbattribute.MarshalMap(curr_student)
-
-	_, err = dynoClient.PutItem(&dynamodb.PutItemInput{
+	
+	_, err := dynoClient.PutItem(&dynamodb.PutItemInput{
 		TableName: &tableName,
 		Item:      item,
 	})
@@ -71,14 +67,18 @@ func putStudent(request events.APIGatewayProxyRequest, dynoClient dynamodb.Dynam
 			StatusCode: 500,
 		}
 	}
-
+	
 	return events.APIGatewayProxyResponse{Body: "Ok", StatusCode: 200}
 }
 
 func deleteStudent(request events.APIGatewayProxyRequest, dynoClient dynamodb.DynamoDB, tableName string) events.APIGatewayProxyResponse {
-	rollno := request.QueryStringParameters["rollno"]
+	json_data:= Student{}
+	// json.Unmarshal(string.NewReader(request.Body))
+	json.Unmarshal([]byte(request.Body), &json_data)
 
-
+	rollno := json_data.Rollno
+	
+	
 	_, err := dynoClient.DeleteItem(&dynamodb.DeleteItemInput{
 		TableName: &tableName,
 		Key: map[string]*dynamodb.AttributeValue{
@@ -87,13 +87,52 @@ func deleteStudent(request events.APIGatewayProxyRequest, dynoClient dynamodb.Dy
 			},
 		},
 	})
-
+	
 	if err!=nil{
 		return events.APIGatewayProxyResponse{
 			Body:       "Unable to delete: " + err.Error(),
 			StatusCode: 500,
 		}
 	}
-
+	
 	return events.APIGatewayProxyResponse{Body: "Ok", StatusCode: 200}
+}
+
+func updateStudent(request events.APIGatewayProxyRequest, dynoClient dynamodb.DynamoDB, tableName string) events.APIGatewayProxyResponse  {
+	json_data:= Student{}
+	// json.Unmarshal(string.NewReader(request.Body))
+	json.Unmarshal([]byte(request.Body), &json_data)
+
+	rollno := json_data.Rollno
+	student_name := json_data.Name
+	
+	// in_json := json.NewDecoder(strings.NewReader(request.Body))
+	
+	
+	_, err := dynoClient.UpdateItem(&dynamodb.UpdateItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"Rollno": {
+				N: &rollno,
+			},
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":r": {
+				S: aws.String(student_name),
+			},
+		},
+
+		UpdateExpression: aws.String("set SName = :r"),
+	})
+	
+	if err!=nil{
+		return events.APIGatewayProxyResponse{
+			Body:       "Unable to update: " + err.Error(),
+			StatusCode: 500,
+
+		}
+	}
+	
+	json_str, _ := json.Marshal(json_data)
+	return events.APIGatewayProxyResponse{Body: string(json_str), StatusCode: 200}
 }

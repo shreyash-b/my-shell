@@ -31,6 +31,10 @@ func lambdaHandler(ctx context.Context, request events.APIGatewayProxyRequest) (
 
 	case "DELETE":
 		return deleteStudent(request, *dynoClient, tableName), nil
+		
+	case "POST":
+		return updateStudent(request, *dynoClient, tableName), nil
+
 	}
 
 	return events.APIGatewayProxyResponse{Body: "Method not allowed", StatusCode: 405}, nil
