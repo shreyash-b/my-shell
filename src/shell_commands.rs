@@ -8,7 +8,7 @@ pub mod commands {
 
     pub fn echo_callback(in_stream: &mut String, out_stream: &mut String, err_stream: &mut String, arg: &String) -> i32 {
         // let mut write_str = arg.clone();
-        writeln!(out_stream, "{}", in_stream).expect("Unable to write");
+        write!(out_stream, "{}", in_stream).expect("Unable to write");
         if arg.len() != 0 {
             writeln!(out_stream, "{}", arg).expect("Unable to write");
             // write_str = in_stream.clone();

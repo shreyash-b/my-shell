@@ -1,9 +1,8 @@
 use shell_commands::commands;
+use std::cell::RefCell;
 use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::Path;
-
-use crate::shell_commands::commands::echo_callback;
 
 mod shell_commands;
 
@@ -32,9 +31,9 @@ impl Shell {
 
         let mut ret_val: i32 = 0;
 
-        type func = fn(&mut String, &mut String, &mut String, &String) -> i32;
+        type Func = fn(&mut String, &mut String, &mut String, &String) -> i32;
 
-        let mut exec_func: func = commands::echo_callback;
+        let mut exec_func: Func = commands::echo_callback;
         // exec_func = commands::echo_callback;
 
         match cmd {
@@ -53,11 +52,15 @@ impl Shell {
     }
 
     fn parse(&self, user_cmd: String) -> i32 {
-        let mut in_stream = String::new();
-        let mut out_stream = String::new(); // stdout stream
-        let mut err_stram = String::new(); // stderr stream
+        let mut in_stream = RefCell::new(String::new());
+        let mut out_stream = RefCell::new(String::new()); // stdout stream
+        let mut err_stream = RefCell::new(String::new()); // stderr stream
         let mut ret_val = 0;
 
+
+        let mut in_param = in_stream.borrow_mut();
+        let mut out_param = out_stream.borrow_mut();
+        let mut err_param = err_stream.borrow_mut();
         // out2.push(2);
 
         // add features for pipelining and output redirection
@@ -101,6 +104,8 @@ impl Shell {
                     (command, file_path) =
                         (split[0].trim().to_string(), split[1].trim().to_string());
                     std_err = true;
+                } else if execute_cmd.contains("1>&2") {
+                    // out_param = err_stream.borrow_mut(); // not working
                 } else {
                     let split: Vec<&str> = execute_cmd.split(">").collect();
                     (command, file_path) =
@@ -112,10 +117,12 @@ impl Shell {
             }
 
             // command.push_str(out_stream.as_str());
-            in_stream = out_stream.clone();
-            out_stream.clear();
-            err_stram.clear();
-            ret_val = self.command_executor(&mut in_stream, &mut out_stream, &mut err_stram, command);
+            // in_stream = out_param.clone();
+            // in_param = out_param.clone();
+            let mut in_param = out_param.clone();
+            out_param.clear();
+            err_param.clear();
+            ret_val = self.command_executor(&mut in_param, &mut out_param, &mut err_param, command);
 
             if !file_path.is_empty() {
                 let path = Path::new(&file_path);
@@ -123,11 +130,11 @@ impl Shell {
                 let mut content = String::new();
 
                 if std_out == true {
-                    content += &out_stream;
+                    content += &out_param;
                 }
 
                 if std_err == true {
-                    content += &err_stram;
+                    content += &err_param;
                 }
 
                 if to_append == false {
@@ -145,8 +152,8 @@ impl Shell {
         }
 
         if std_err == false {
-            write!(io::stdout(), "{}", out_stream).unwrap();
-            write!(io::stderr(), "{}", err_stram).unwrap();
+            write!(io::stdout(), "{}", out_param).unwrap();
+            write!(io::stderr(), "{}", err_param).unwrap();
         }
 
         return ret_val;
