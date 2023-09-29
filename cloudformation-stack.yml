@@ -8,8 +8,8 @@ Resources:
 
       AttributeDefinitions:
         - AttributeName: Rollno
-          AttributeType: N
-
+          AttributeType: S
+          
       KeySchema:
         - AttributeName: Rollno
           KeyType: HASH
