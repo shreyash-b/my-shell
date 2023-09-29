@@ -35,6 +35,12 @@ Resources:
             Path: /addStudent
             Method: Put
 
+        DeleteStudent:
+          Type: Api
+          Properties:
+            Path: /deleteStudent
+            Method: DELETE
+
     Policies:
       - Action: "dynamodb:*"
         Resource: "StudentDB"
