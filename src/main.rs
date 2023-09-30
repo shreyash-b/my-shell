@@ -20,7 +20,7 @@ impl Shell {
 
     fn command_executor(
         &self,
-        in_stream: &mut String,
+        in_stream: &String,
         out_stream: &mut String,
         err_string: &mut String,
         cmd: String,
@@ -31,7 +31,7 @@ impl Shell {
 
         let mut ret_val: i32 = 0;
 
-        type Func = fn(&mut String, &mut String, &mut String, &String) -> i32;
+        type Func = fn(&String, &mut String, &mut String, &String) -> i32;
 
         let mut exec_func: Func = commands::echo_callback;
         // exec_func = commands::echo_callback;
@@ -52,13 +52,13 @@ impl Shell {
     }
 
     fn parse(&self, user_cmd: String) -> i32 {
-        let mut in_stream = RefCell::new(String::new());
-        let mut out_stream = RefCell::new(String::new()); // stdout stream
-        let mut err_stream = RefCell::new(String::new()); // stderr stream
+//        let in_stream = RefCell::new(String::new());
+        let out_stream = RefCell::new(String::new()); // stdout stream
+        let err_stream = RefCell::new(String::new()); // stderr stream
         let mut ret_val = 0;
 
 
-        let mut in_param = in_stream.borrow_mut();
+        let mut in_param: String;
         let mut out_param = out_stream.borrow_mut();
         let mut err_param = err_stream.borrow_mut();
         // out2.push(2);
@@ -119,10 +119,10 @@ impl Shell {
             // command.push_str(out_stream.as_str());
             // in_stream = out_param.clone();
             // in_param = out_param.clone();
-            let mut in_param = out_param.clone();
+            in_param = out_param.clone();
             out_param.clear();
             err_param.clear();
-            ret_val = self.command_executor(&mut in_param, &mut out_param, &mut err_param, command);
+            ret_val = self.command_executor(&in_param, &mut out_param, &mut err_param, command);
 
             if !file_path.is_empty() {
                 let path = Path::new(&file_path);
