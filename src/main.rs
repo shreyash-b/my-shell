@@ -1,8 +1,10 @@
 use shell_commands::commands;
 use std::cell::RefCell;
+use std::env;
 use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::Path;
+
 
 mod shell_commands;
 
@@ -193,6 +195,12 @@ impl Shell {
 }
 
 fn main() {
+    let playground_path = Path::new("playground/");
+    if env::set_current_dir(playground_path).is_ok() {
+        writeln!(io::stdout(), "Successfully CDed into playground dir").unwrap();
+    }
+
     let my_shell = Shell::new(String::from("my-shell"));
     my_shell.run();
+
 }
