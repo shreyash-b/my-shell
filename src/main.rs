@@ -3,7 +3,6 @@ use nix::unistd::{dup2, fork, ForkResult};
 use shell_commands::commands;
 use std::cell::RefCell;
 use std::env;
-use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::exit;
@@ -64,123 +63,62 @@ impl Shell {
         let mut out_param = out_stream.borrow_mut();
         let mut err_param = err_stream.borrow_mut();
 
+        let mut user_cmd = user_cmd;
+        
+        if user_cmd.contains(">&") {
+            let redir_index = user_cmd.find(">&").unwrap(); //10
+            // toFix: indexing here
+            let from_fd = &user_cmd[redir_index - 1..redir_index]; //1
+            match from_fd {
+                "1" => {
+                    // will execute if 1>&2
+                    dup2(2, 1).unwrap();
+                }
+                "2" => {
+                    // will execute if 2>&1
+                    dup2(1,2).unwrap();
+                }
+                &_ => {
+                    panic!("invalid fd for redirect");
+                }
+            }
+            // execute_cmd.remove(execute_cmd[redir_index-1..redir_index+3]);
+            user_cmd.replace_range(redir_index - 1..redir_index + 3, ""); 
+            // cat 1234  >file
+            // execute_cmd = command.clone();
+            
+        }
+        // user_cmd = "cat 1234  >file"
+        
+        if user_cmd.contains(">"){
+            if user_cmd.contains(">>"){
+                // open file in append mode
+            } else {
+                // open file in truncate mode
+            }
+            // open file
+            // call dup2 on file descriptors
+            // replace file redirection with ""
+            // user_cmd = "cat 1234  "
+        }
         //pipes
         let cmd = user_cmd.split(" | ");
-        let mut to_append: bool = false;
-        let mut std_out: bool = false; // Checks the standrad ouput
-        let mut std_err: bool = false; // Checks the standrad error
+        // let cmd = user_cmd.split(" ");
 
         for c in cmd {
 
-            let mut execute_cmd = c.to_string();
-            let mut command = String::new();
-            let mut file_path = String::from("");
-
-            std_err = false;
-            std_out = false;
-
-            if execute_cmd.contains(">>") {
-                let split: Vec<&str> = execute_cmd.split(">>").collect();
-                (command, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
-                std_out = true;
-                to_append = true;
-            } else if execute_cmd.contains(">") {
-                let redir_index = execute_cmd.find(">").unwrap();
-                if &execute_cmd[redir_index + 1..redir_index + 2] == "&" {
-                    // toFix: indexing here
-                    let from_fd = &execute_cmd[redir_index - 1..redir_index];
-                    match from_fd {
-                        "1" => {
-                            // will execute if 1>&2
-                            dup2(2, 1).unwrap();
-                        }
-                        "2" => {
-                            // will execute if 2>&1
-                            dup2(1,2).unwrap();
-                        }
-                        &_ => {
-                            panic!("invalid fd for redirect");
-                        }
-                    }
-                    // execute_cmd.remove(execute_cmd[redir_index-1..redir_index+3]);
-                    execute_cmd.replace_range(redir_index - 1..redir_index + 3, "");
-                    command = execute_cmd.clone();
-                    // execute_cmd = command.clone();
-                }
-
-                if execute_cmd.contains("2>") {
-                    let split: Vec<&str> = execute_cmd.split("2>").collect();
-                    (command, file_path) =
-                        (split[0].trim().to_string(), split[1].trim().to_string());
-                    std_err = true;
-                } else if execute_cmd.contains(">") {
-                    let split: Vec<&str> = execute_cmd.split(">").collect();
-                    (command, file_path) =
-                        (split[0].trim().to_string(), split[1].trim().to_string());
-                    std_out = true;
-                }
-            } else {
-                command = execute_cmd;
-            }
+            let execute_cmd = c.to_string();
 
             in_param = out_param.clone();
             out_param.clear();
             err_param.clear();
 
-            self.command_executor(&in_param, &mut out_param, &mut err_param, command);
-
-            if !file_path.is_empty() {
-                let path = Path::new(&file_path);
-
-                let mut content = String::new();
-
-                if std_out == true {
-                    content += &out_param;
-                }
-
-                if std_err == true {
-                    content += &err_param;
-                }
-
-                if to_append == false {
-                    self.handle_redirect(&mut content, path)
-                        .unwrap_or_else(|why| {
-                            println!("! {:?}", why.kind());
-                        });
-                } else if to_append == true {
-                    self.handle_redirect_append(&mut content, path)
-                        .unwrap_or_else(|why| {
-                            println!("! {:?}", why.kind());
-                        });
-                }
-            }
-        }
-
-        if std_err == false {
-            write!(io::stdout(), "{}", out_param).unwrap();
-            write!(io::stderr(), "{}", err_param).unwrap();
+            self.command_executor(&in_param, &mut out_param, &mut err_param, execute_cmd);
         }
 
         exit(0);
     }
 
-    fn handle_redirect(&self, s: &str, path: &Path) -> io::Result<()> {
-        // Function to handle redirects takes content and file path as arguments
-        let mut f = OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(path)?;
-
-        f.write_all(s.as_bytes())
-    }
-
-    fn handle_redirect_append(&self, s: &str, path: &Path) -> io::Result<()> {
-        // Function to handle redirects takes content and file path as arguments
-        let mut f = OpenOptions::new().create(true).append(true).open(path)?;
-
-        f.write_all(s.as_bytes())
-    }
 
     fn run(&self) {
         loop {
