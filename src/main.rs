@@ -1,10 +1,12 @@
+use nix::sys::wait::waitpid;
+use nix::unistd::{fork, ForkResult};
 use shell_commands::commands;
 use std::cell::RefCell;
 use std::env;
 use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::Path;
-
+use std::process::exit;
 
 mod shell_commands;
 
@@ -43,10 +45,10 @@ impl Shell {
             "cat" => exec_func = commands::cat_callback,
             "ls" => exec_func = commands::ls_callback,
             "exit" => ret_val = 11,
-            &_ => {return 12}
+            &_ => return 12,
         }
 
-        if ret_val != 11{
+        if ret_val != 11 {
             exec_func(in_stream, out_stream, err_string, &arg);
         }
 
@@ -54,32 +56,21 @@ impl Shell {
     }
 
     fn parse(&self, user_cmd: String) -> i32 {
-//        let in_stream = RefCell::new(String::new());
+        //        let in_stream = RefCell::new(String::new());
         let out_stream = RefCell::new(String::new()); // stdout stream
         let err_stream = RefCell::new(String::new()); // stderr stream
-        let mut ret_val = 0;
-
 
         let mut in_param: String;
         let mut out_param = out_stream.borrow_mut();
         let mut err_param = err_stream.borrow_mut();
-        // out2.push(2);
 
-        // add features for pipelining and output redirection
-        // others: modify the parse function by utilizing splitted user_cmd
-        // command_executor will execute the specified command and return the stdout and stderr in respective strings
-        // for eg in case of "cat /some/file | echo > op.txt",
-        // command_executor can only execute "cat /some/file" and "echo <args>" individually
-        // pipelining and redirection is to be implemented in this function
-
-        //pipelining
+        //pipes
         let cmd = user_cmd.split(" | ");
         let mut to_append: bool = false;
         let mut std_out: bool = false; // Checks the standrad ouput
         let mut std_err: bool = false; // Checks the standrad error
 
         for c in cmd {
-            // assuming that pipe redirects output as command line argument instead of stdin for simplicity
 
             let mut execute_cmd = c.to_string();
             let mut command = String::new();
@@ -94,21 +85,35 @@ impl Shell {
                 std_out = true;
                 to_append = true;
             } else if execute_cmd.contains(">") {
-                if execute_cmd.contains("2>&1") {
-                    execute_cmd = execute_cmd.replace("2>&1", "");
-                    let split: Vec<&str> = execute_cmd.split(">").collect();
-                    (command, file_path) =
-                        (split[0].trim().to_string(), split[1].trim().to_string());
-                    std_err = true;
-                    std_out = true;
-                } else if execute_cmd.contains("2>") {
+                let redir_index = execute_cmd.find(">").unwrap();
+                if &execute_cmd[redir_index + 1..redir_index + 2] == "&" {
+                    // toFix: indexing here
+                    let from_fd = &execute_cmd[redir_index - 1..redir_index];
+                    match from_fd {
+                        "1" => {
+                            // will execute if 1>&2
+                            
+                        }
+                        "2" => {
+                            // will execute if 2>&1
+                            
+                        }
+                        &_ => {
+                            panic!("invalid fd for redirect");
+                        }
+                    }
+                    // execute_cmd.remove(execute_cmd[redir_index-1..redir_index+3]);
+                    execute_cmd.replace_range(redir_index - 1..redir_index + 3, "");
+                    command = execute_cmd.clone();
+                    // execute_cmd = command.clone();
+                }
+
+                if execute_cmd.contains("2>") {
                     let split: Vec<&str> = execute_cmd.split("2>").collect();
                     (command, file_path) =
                         (split[0].trim().to_string(), split[1].trim().to_string());
                     std_err = true;
-                } else if execute_cmd.contains("1>&2") {
-                    // out_param = err_stream.borrow_mut(); // not working
-                } else {
+                } else if execute_cmd.contains(">") {
                     let split: Vec<&str> = execute_cmd.split(">").collect();
                     (command, file_path) =
                         (split[0].trim().to_string(), split[1].trim().to_string());
@@ -118,13 +123,11 @@ impl Shell {
                 command = execute_cmd;
             }
 
-            // command.push_str(out_stream.as_str());
-            // in_stream = out_param.clone();
-            // in_param = out_param.clone();
             in_param = out_param.clone();
             out_param.clear();
             err_param.clear();
-            ret_val = self.command_executor(&in_param, &mut out_param, &mut err_param, command);
+
+            self.command_executor(&in_param, &mut out_param, &mut err_param, command);
 
             if !file_path.is_empty() {
                 let path = Path::new(&file_path);
@@ -158,7 +161,7 @@ impl Shell {
             write!(io::stderr(), "{}", err_param).unwrap();
         }
 
-        return ret_val;
+        exit(0);
     }
 
     fn handle_redirect(&self, s: &str, path: &Path) -> io::Result<()> {
@@ -185,10 +188,18 @@ impl Shell {
             print!("{}> ", self.shell_prefix);
             io::stdout().flush().unwrap();
             io::stdin().read_line(&mut cmd).unwrap();
-
-            let ret_val = self.parse(cmd);
-            if ret_val == 11 {
+            // let ret_value = 0;
+            if cmd.trim() == "exit"{
                 break;
+            }
+            match unsafe{fork()}{
+                Ok(ForkResult::Child)=>{
+                    self.parse(cmd);
+                }
+                Ok(ForkResult::Parent { child })=>{
+                    waitpid(child, None).unwrap();
+                },
+                Err(_)=>{}
             }
         }
     }
@@ -202,5 +213,4 @@ fn main() {
 
     let my_shell = Shell::new(String::from("my-shell"));
     my_shell.run();
-
 }
