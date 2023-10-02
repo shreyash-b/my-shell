@@ -2,7 +2,7 @@ use nix::sys::wait::waitpid;
 use nix::unistd::{dup2, fork, ForkResult};
 use shell_commands::commands;
 use std::env;
-use std::io::{self, Write};
+use std::io::{self, stdout, Write, stderr};
 use std::path::Path;
 use std::process::exit;
 
@@ -44,7 +44,7 @@ impl Shell {
 
         if user_cmd.contains(">&") {
             let redir_index = user_cmd.find(">&").unwrap(); //10
-            // toFix: indexing here
+                                                            // toFix: indexing here
             let from_fd = &user_cmd[redir_index - 1..redir_index]; //1
             match from_fd {
                 "1" => {
@@ -61,6 +61,12 @@ impl Shell {
             }
             // execute_cmd.remove(execute_cmd[redir_index-1..redir_index+3]);
             user_cmd.replace_range(redir_index - 1..redir_index + 3, "");
+
+            if user_cmd.contains(">&") {
+                writeln!(stderr(), "[ERROR] Invalid use of redirection!!").unwrap();
+                exit(-1);
+            }
+
             // cat 1234  >file
             // execute_cmd = command.clone();
         }
@@ -92,9 +98,14 @@ impl Shell {
     fn run(&self) {
         loop {
             let mut cmd = String::new();
-            print!("{}> ", self.shell_prefix);
+            write!(stdout(), "{}> ", self.shell_prefix).unwrap();
             io::stdout().flush().unwrap();
             io::stdin().read_line(&mut cmd).unwrap();
+
+            if cmd.len() < 2 { //newline
+                continue;
+            }
+
             // let ret_value = 0;
             if cmd.trim() == "exit" {
                 break;
