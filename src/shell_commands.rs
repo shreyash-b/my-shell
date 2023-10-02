@@ -4,27 +4,12 @@ pub mod commands {
     use std::io::{stdout, stderr, Write};
     // use std::io::Write;
 
-    pub fn echo_callback(
-        in_stream: &String,
-        out_stream: &mut String,
-        err_stream: &mut String,
-        arg: &String,
-    ) -> i32 {
-        // let mut write_str = arg.clone();
-        write!(stdout(), "{}", in_stream).expect("Unable to write");
-        if arg.len() != 0 {
-            writeln!(stdout(), "{}", arg).expect("Unable to write");
-            // write_str = in_stream.clone();
-        }
+    pub fn echo_callback(arg: &String) -> i32 {
+        writeln!(stdout(), "{}", arg).expect("Unable to write");
         return 0;
     }
 
-    pub fn cat_callback(
-        in_stream: &String,
-        out_stream: &mut String,
-        err_stream: &mut String,
-        arg: &String,
-    ) -> i32 {
+    pub fn cat_callback(arg: &String) -> i32 {
         let file_contents = match fs::read_to_string(&arg) {
             Ok(v) => v,
             Err(_) => {
@@ -36,12 +21,7 @@ pub mod commands {
         return 0;
     }
 
-    pub fn ls_callback(
-        in_stream: &String,
-        out_stream: &mut String,
-        err_stream: &mut String,
-        arg: &String,
-    ) -> i32 {
+    pub fn ls_callback(arg: &String) -> i32 {
         let paths = fs::read_dir("./").unwrap();
 
         for path in paths {

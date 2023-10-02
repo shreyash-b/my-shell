@@ -21,48 +21,31 @@ impl Shell {
         };
     }
 
-    fn command_executor(
-        &self,
-        in_stream: &String,
-        out_stream: &mut String,
-        err_string: &mut String,
-        cmd: String,
-    ) -> i32 {
+    fn command_executor(&self, cmd: String) -> i32 {
         let input_cmd = cmd.split_ascii_whitespace().collect::<Vec<_>>();
         let cmd = input_cmd[0];
         let arg = input_cmd[1..].join(" ");
 
         let mut ret_val: i32 = 0;
 
-        type Func = fn(&String, &mut String, &mut String, &String) -> i32;
+        type Func = fn(&String) -> i32;
 
-        let mut exec_func: Func = commands::echo_callback;
+        let mut exec_func: Func = commands::echo_callback; // dummy value
         // exec_func = commands::echo_callback;
 
         match cmd {
             "echo" => exec_func = commands::echo_callback,
             "cat" => exec_func = commands::cat_callback,
             "ls" => exec_func = commands::ls_callback,
-            "exit" => ret_val = 11,
             &_ => return 12,
         }
 
-        if ret_val != 11 {
-            exec_func(in_stream, out_stream, err_string, &arg);
-        }
+        exec_func(&arg);
 
         return ret_val;
     }
 
     fn parse(&self, user_cmd: String) -> i32 {
-        //        let in_stream = RefCell::new(String::new());
-        let out_stream = RefCell::new(String::new()); // stdout stream
-        let err_stream = RefCell::new(String::new()); // stderr stream
-
-        let mut in_param: String;
-        let mut out_param = out_stream.borrow_mut();
-        let mut err_param = err_stream.borrow_mut();
-
         let mut user_cmd = user_cmd;
         
         if user_cmd.contains(">&") {
@@ -108,12 +91,7 @@ impl Shell {
         for c in cmd {
 
             let execute_cmd = c.to_string();
-
-            in_param = out_param.clone();
-            out_param.clear();
-            err_param.clear();
-
-            self.command_executor(&in_param, &mut out_param, &mut err_param, execute_cmd);
+            self.command_executor(execute_cmd);
         }
 
         exit(0);
