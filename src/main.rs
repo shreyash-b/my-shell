@@ -1,7 +1,6 @@
 use nix::sys::wait::waitpid;
 use nix::unistd::{dup2, fork, ForkResult};
 use shell_commands::commands;
-use std::cell::RefCell;
 use std::env;
 use std::io::{self, Write};
 use std::path::Path;
@@ -21,33 +20,28 @@ impl Shell {
         };
     }
 
-    fn command_executor(&self, cmd: String) -> i32 {
+    fn command_executor(&self, cmd: String) {
         let input_cmd = cmd.split_ascii_whitespace().collect::<Vec<_>>();
         let cmd = input_cmd[0];
         let arg = input_cmd[1..].join(" ");
 
-        let mut ret_val: i32 = 0;
-
         type Func = fn(&String) -> i32;
 
         let mut exec_func: Func = commands::echo_callback; // dummy value
-        // exec_func = commands::echo_callback;
 
         match cmd {
             "echo" => exec_func = commands::echo_callback,
             "cat" => exec_func = commands::cat_callback,
             "ls" => exec_func = commands::ls_callback,
-            &_ => return 12,
+            &_ => return,
         }
 
         exec_func(&arg);
-
-        return ret_val;
     }
 
-    fn parse(&self, user_cmd: String) -> i32 {
+    fn parse(&self, user_cmd: String) {
         let mut user_cmd = user_cmd;
-        
+
         if user_cmd.contains(">&") {
             let redir_index = user_cmd.find(">&").unwrap(); //10
             // toFix: indexing here
@@ -59,22 +53,21 @@ impl Shell {
                 }
                 "2" => {
                     // will execute if 2>&1
-                    dup2(1,2).unwrap();
+                    dup2(1, 2).unwrap();
                 }
                 &_ => {
                     panic!("invalid fd for redirect");
                 }
             }
             // execute_cmd.remove(execute_cmd[redir_index-1..redir_index+3]);
-            user_cmd.replace_range(redir_index - 1..redir_index + 3, ""); 
+            user_cmd.replace_range(redir_index - 1..redir_index + 3, "");
             // cat 1234  >file
             // execute_cmd = command.clone();
-            
         }
         // user_cmd = "cat 1234  >file"
-        
-        if user_cmd.contains(">"){
-            if user_cmd.contains(">>"){
+
+        if user_cmd.contains(">") {
+            if user_cmd.contains(">>") {
                 // open file in append mode
             } else {
                 // open file in truncate mode
@@ -89,14 +82,12 @@ impl Shell {
         // let cmd = user_cmd.split(" ");
 
         for c in cmd {
-
             let execute_cmd = c.to_string();
             self.command_executor(execute_cmd);
         }
 
         exit(0);
     }
-
 
     fn run(&self) {
         loop {
@@ -105,17 +96,17 @@ impl Shell {
             io::stdout().flush().unwrap();
             io::stdin().read_line(&mut cmd).unwrap();
             // let ret_value = 0;
-            if cmd.trim() == "exit"{
+            if cmd.trim() == "exit" {
                 break;
             }
-            match unsafe{fork()}{
-                Ok(ForkResult::Child)=>{
+            match unsafe { fork() } {
+                Ok(ForkResult::Child) => {
                     self.parse(cmd);
                 }
-                Ok(ForkResult::Parent { child })=>{
+                Ok(ForkResult::Parent { child }) => {
                     waitpid(child, None).unwrap();
-                },
-                Err(_)=>{}
+                }
+                Err(_) => {}
             }
         }
     }
