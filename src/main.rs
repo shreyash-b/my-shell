@@ -1,5 +1,5 @@
 use nix::sys::wait::waitpid;
-use nix::unistd::{fork, ForkResult};
+use nix::unistd::{dup2, fork, ForkResult};
 use shell_commands::commands;
 use std::cell::RefCell;
 use std::env;
@@ -92,11 +92,11 @@ impl Shell {
                     match from_fd {
                         "1" => {
                             // will execute if 1>&2
-                            
+                            dup2(2, 1).unwrap();
                         }
                         "2" => {
                             // will execute if 2>&1
-                            
+                            dup2(1,2).unwrap();
                         }
                         &_ => {
                             panic!("invalid fd for redirect");
