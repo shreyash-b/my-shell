@@ -1,5 +1,5 @@
 use nix::sys::wait::waitpid;
-use nix::unistd::{dup2, fork, ForkResult};
+use nix::unistd::{dup2, fork, ForkResult, pipe};
 use shell_commands::commands;
 use std::env;
 use std::io::{self, stdout, Write, stderr};
@@ -87,12 +87,14 @@ impl Shell {
         let cmd = user_cmd.split(" | ");
         // let cmd = user_cmd.split(" ");
 
+        let redir_pipe = pipe().unwrap();
+        
         for c in cmd {
             let execute_cmd = c.to_string();
             self.command_executor(execute_cmd);
         }
 
-        exit(0);
+        // exit(0);
     }
 
     fn run(&self) {
@@ -110,15 +112,16 @@ impl Shell {
             if cmd.trim() == "exit" {
                 break;
             }
-            match unsafe { fork() } {
-                Ok(ForkResult::Child) => {
-                    self.parse(cmd);
-                }
-                Ok(ForkResult::Parent { child }) => {
-                    waitpid(child, None).unwrap();
-                }
-                Err(_) => {}
-            }
+            self.parse(cmd);
+
+            // match unsafe { fork() } {
+            //     Ok(ForkResult::Child) => {
+            //     }
+            //     Ok(ForkResult::Parent { child }) => {
+            //         // waitpid(child, None).unwrap();
+            //     }
+            //     Err(_) => {}
+            // }
         }
     }
 }
