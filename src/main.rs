@@ -1,10 +1,10 @@
 use nix::sys::wait::waitpid;
-use nix::unistd::{dup2, fork, ForkResult, pipe};
+use nix::unistd::{dup2, fork, pipe, ForkResult};
 use shell_commands::commands;
-use std::env;
-use std::io::{self, stdout, Write, stderr};
+use std::io::{self, stderr, stdout, Write};
 use std::path::Path;
 use std::process::exit;
+use std::{env, process};
 
 mod shell_commands;
 
@@ -23,7 +23,7 @@ impl Shell {
     fn command_executor(&self, cmd: String) {
         let input_cmd = cmd.split_ascii_whitespace().collect::<Vec<_>>();
         let cmd = input_cmd[0];
-        let arg = input_cmd[1..].join(" ");
+        let arg = &input_cmd[1..].join(" ");
 
         type Func = fn(&String) -> i32;
 
@@ -33,6 +33,13 @@ impl Shell {
             "echo" => exec_func = commands::echo_callback,
             "cat" => exec_func = commands::cat_callback,
             "ls" => exec_func = commands::ls_callback,
+            "grep" => {
+                println!(
+                    "{:#?}",
+                    process::Command::new("grep").args(&input_cmd[1..]).output().unwrap()
+                );
+                return;
+            }
             &_ => return,
         }
 
@@ -88,7 +95,7 @@ impl Shell {
         // let cmd = user_cmd.split(" ");
 
         let redir_pipe = pipe().unwrap();
-        
+
         for c in cmd {
             let execute_cmd = c.to_string();
             self.command_executor(execute_cmd);
@@ -104,7 +111,8 @@ impl Shell {
             io::stdout().flush().unwrap();
             io::stdin().read_line(&mut cmd).unwrap();
 
-            if cmd.len() < 2 { //newline
+            if cmd.len() < 2 {
+                //newline
                 continue;
             }
 
