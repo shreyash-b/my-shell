@@ -1,6 +1,7 @@
 use nix::sys::wait::waitpid;
-use nix::unistd::{dup2, fork, pipe, ForkResult};
+use nix::unistd::{close, dup2, fork, pipe, ForkResult};
 use shell_commands::commands;
+use std::collections::VecDeque;
 use std::io::{self, stderr, stdout, Write};
 use std::path::Path;
 use std::process::exit;
@@ -33,14 +34,15 @@ impl Shell {
             "echo" => exec_func = commands::echo_callback,
             "cat" => exec_func = commands::cat_callback,
             "ls" => exec_func = commands::ls_callback,
-            "grep" => {
-                println!(
-                    "{:#?}",
-                    process::Command::new("grep").args(&input_cmd[1..]).output().unwrap()
-                );
+            &_ => {
+                process::Command::new(cmd)
+                    .args(&input_cmd[1..])
+                    .spawn()
+                    .unwrap()
+                    .wait()
+                    .unwrap();
                 return;
             }
-            &_ => return,
         }
 
         exec_func(&arg);
@@ -91,14 +93,59 @@ impl Shell {
             // user_cmd = "cat 1234  "
         }
         //pipes
-        let cmd = user_cmd.split(" | ");
+        let cmd = user_cmd.split(" | ").collect::<Vec<&str>>();
+        let cmd_num = cmd.len();
         // let cmd = user_cmd.split(" ");
 
-        let redir_pipe = pipe().unwrap();
+        let mut redir_pipes = VecDeque::<(i32, i32)>::new();
 
-        for c in cmd {
-            let execute_cmd = c.to_string();
-            self.command_executor(execute_cmd);
+        // for c in cmd {
+        //     let execute_cmd = c.to_string();
+        //     self.command_executor(execute_cmd);
+        // }
+
+        for i in 0..cmd_num {
+            let stdout_redir = i > 0; // stdout from prev command // false
+            let stdin_redir = i < cmd_num - 1; // stdin to next command // true
+
+            if stdin_redir {
+                redir_pipes.push_back(pipe().unwrap().to_owned()); // pipe for passing stdout of current cmd to next cmd
+            }
+
+            // println!("{}", i);
+
+            match unsafe { fork() } {
+                Ok(ForkResult::Child) => {
+                    if stdout_redir {
+                        // false
+                        dup2(redir_pipes.front().unwrap().0, 0).unwrap(); // getting stdin
+                    }
+
+                    if stdin_redir {
+                        // true
+                        dup2(redir_pipes.back().unwrap().1, 1).unwrap();
+                    }
+
+                    self.command_executor(cmd[i].to_string());
+                    exit(0);
+                }
+
+                Ok(ForkResult::Parent { child }) => {
+                    if stdin_redir {
+                        // true
+                        close(redir_pipes.back().unwrap().1).unwrap();
+                    }
+                    if stdout_redir {
+                        // false
+                        close(redir_pipes.front().unwrap().0).unwrap();
+                        redir_pipes.pop_front();
+                    }
+
+                    waitpid(child, None).unwrap();
+                }
+
+                Err(_) => {}
+            }
         }
 
         // exit(0);
