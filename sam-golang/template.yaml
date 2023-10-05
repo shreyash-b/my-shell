@@ -50,7 +50,7 @@ Resources:
 
       Policies:
         - AmazonDynamoDBFullAccess
-        - AWSXrayWriteOnlyAccess
+        - AWSXrayFullAccess
 
 
 Outputs:
