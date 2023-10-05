@@ -1,10 +1,11 @@
 use nix::sys::wait::waitpid;
-use nix::unistd::{dup2, fork, ForkResult};
+use nix::unistd::{close, dup2, fork, pipe, ForkResult};
 use shell_commands::commands;
-use std::env;
-use std::io::{self, stdout, Write, stderr};
+use std::collections::VecDeque;
+use std::io::{self, stderr, stdout, Write};
 use std::path::Path;
 use std::process::exit;
+use std::{env, process};
 
 mod shell_commands;
 
@@ -23,7 +24,7 @@ impl Shell {
     fn command_executor(&self, cmd: String) {
         let input_cmd = cmd.split_ascii_whitespace().collect::<Vec<_>>();
         let cmd = input_cmd[0];
-        let arg = input_cmd[1..].join(" ");
+        let arg = &input_cmd[1..].join(" ");
 
         type Func = fn(&String) -> i32;
 
@@ -33,7 +34,15 @@ impl Shell {
             "echo" => exec_func = commands::echo_callback,
             "cat" => exec_func = commands::cat_callback,
             "ls" => exec_func = commands::ls_callback,
-            &_ => return,
+            &_ => {
+                process::Command::new(cmd)
+                    .args(&input_cmd[1..])
+                    .spawn()
+                    .unwrap()
+                    .wait()
+                    .unwrap();
+                return;
+            }
         }
 
         exec_func(&arg);
@@ -84,15 +93,62 @@ impl Shell {
             // user_cmd = "cat 1234  "
         }
         //pipes
-        let cmd = user_cmd.split(" | ");
+        let cmd = user_cmd.split(" | ").collect::<Vec<&str>>();
+        let cmd_num = cmd.len();
         // let cmd = user_cmd.split(" ");
 
-        for c in cmd {
-            let execute_cmd = c.to_string();
-            self.command_executor(execute_cmd);
+        let mut redir_pipes = VecDeque::<(i32, i32)>::new();
+
+        // for c in cmd {
+        //     let execute_cmd = c.to_string();
+        //     self.command_executor(execute_cmd);
+        // }
+
+        for i in 0..cmd_num {
+            let stdout_redir = i > 0; // stdout from prev command // false
+            let stdin_redir = i < cmd_num - 1; // stdin to next command // true
+
+            if stdin_redir {
+                redir_pipes.push_back(pipe().unwrap().to_owned()); // pipe for passing stdout of current cmd to next cmd
+            }
+
+            // println!("{}", i);
+
+            match unsafe { fork() } {
+                Ok(ForkResult::Child) => {
+                    if stdout_redir {
+                        // false
+                        dup2(redir_pipes.front().unwrap().0, 0).unwrap(); // getting stdin
+                    }
+
+                    if stdin_redir {
+                        // true
+                        dup2(redir_pipes.back().unwrap().1, 1).unwrap();
+                    }
+
+                    self.command_executor(cmd[i].to_string());
+                    exit(0);
+                }
+
+                Ok(ForkResult::Parent { child }) => {
+                    if stdin_redir {
+                        // true
+                        close(redir_pipes.back().unwrap().1).unwrap();
+                    }
+                    if stdout_redir {
+                        // false
+                        close(redir_pipes.front().unwrap().0).unwrap();
+                        redir_pipes.pop_front();
+                    }
+
+                    waitpid(child, None).unwrap();
+                }
+
+                Err(_) => {}
+            }
         }
 
-        exit(0);
+        // exit(0);
     }
 
     fn run(&self) {
@@ -102,7 +158,8 @@ impl Shell {
             io::stdout().flush().unwrap();
             io::stdin().read_line(&mut cmd).unwrap();
 
-            if cmd.len() < 2 { //newline
+            if cmd.len() < 2 {
+                //newline
                 continue;
             }
 
@@ -110,15 +167,16 @@ impl Shell {
             if cmd.trim() == "exit" {
                 break;
             }
-            match unsafe { fork() } {
-                Ok(ForkResult::Child) => {
-                    self.parse(cmd);
-                }
-                Ok(ForkResult::Parent { child }) => {
-                    waitpid(child, None).unwrap();
-                }
-                Err(_) => {}
-            }
+            self.parse(cmd);
+
+            // match unsafe { fork() } {
+            //     Ok(ForkResult::Child) => {
+            //     }
+            //     Ok(ForkResult::Parent { child }) => {
+            //         // waitpid(child, None).unwrap();
+            //     }
+            //     Err(_) => {}
+            // }
         }
     }
 }
