@@ -20,7 +20,8 @@ Resources:
       CodeUri: lambda-handler/
       Handler: bootstrap
       Runtime: provided.al2
-      Tracing: Active
+      Tracing: 
+        Mode: Active
       Architectures:
         - x86_64
       Events:
