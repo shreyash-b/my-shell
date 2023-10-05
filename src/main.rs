@@ -4,7 +4,7 @@ use shell_commands::commands;
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
 use std::io::{self, stderr, stdout, Write};
-use std::os::fd::{AsRawFd};
+use std::os::fd::AsRawFd;
 use std::path::Path;
 use std::process::exit;
 use std::{env, process};
@@ -26,7 +26,7 @@ impl Shell {
     fn command_executor(&self, cmd: String) {
         let input_cmd = cmd.split_ascii_whitespace().collect::<Vec<_>>();
         let cmd = input_cmd[0];
-        let arg = &input_cmd[1..].join(" ");
+        let arg = &input_cmd[1..];
 
         type Func = fn(&String) -> i32;
 
@@ -38,7 +38,7 @@ impl Shell {
             "ls" => exec_func = commands::ls_callback,
             &_ => {
                 process::Command::new(cmd)
-                    .arg(&arg)
+                    .args(arg)
                     .spawn()
                     .unwrap()
                     .wait()
@@ -47,7 +47,7 @@ impl Shell {
             }
         }
 
-        exec_func(&arg);
+        exec_func(&arg.join(" "));
     }
 
     fn parse(&self, user_cmd: String) {
