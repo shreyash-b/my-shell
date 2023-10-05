@@ -21,7 +21,7 @@ func getStudent(request events.APIGatewayProxyRequest, dynoClient dynamodb.Dynam
 		TableName: aws.String(tableName),
 		Key: map[string]*dynamodb.AttributeValue{
 			"Rollno": {
-				N: aws.String(rollno),
+				S: aws.String(rollno),
 			},
 		},
 	})
@@ -83,7 +83,7 @@ func deleteStudent(request events.APIGatewayProxyRequest, dynoClient dynamodb.Dy
 		TableName: &tableName,
 		Key: map[string]*dynamodb.AttributeValue{
 			"Rollno": {
-				N: aws.String(rollno),
+				S: aws.String(rollno),
 			},
 		},
 	})
@@ -113,7 +113,7 @@ func updateStudent(request events.APIGatewayProxyRequest, dynoClient dynamodb.Dy
 		TableName: aws.String(tableName),
 		Key: map[string]*dynamodb.AttributeValue{
 			"Rollno": {
-				N: &rollno,
+				S: &rollno,
 			},
 		},
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
