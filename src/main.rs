@@ -15,7 +15,7 @@ struct Shell {
     shell_prefix: String,
 }
 
-#[allow(unused_assignments)]
+#[allow(unused_assignments, unused_must_use)]
 impl Shell {
     fn new(prefix: String) -> Self {
         return Shell {
@@ -27,6 +27,7 @@ impl Shell {
         let input_cmd = cmd.split_ascii_whitespace().collect::<Vec<_>>();
         let cmd = input_cmd[0];
         let arg = &input_cmd[1..];
+        
 
         type Func = fn(&String) -> i32;
 
@@ -36,13 +37,16 @@ impl Shell {
             "echo" => exec_func = commands::echo_callback,
             "cat" => exec_func = commands::cat_callback,
             "ls" => exec_func = commands::ls_callback,
+            "cd" => exec_func = commands::cd_callback,
             &_ => {
-                process::Command::new(cmd)
+                let child_command = process::Command::new(cmd)
                     .args(arg)
-                    .spawn()
-                    .unwrap()
-                    .wait()
-                    .unwrap();
+                    .spawn();
+
+                match child_command {
+                    Ok(mut child_command) => { child_command.wait(); },
+                    Err(e) => eprintln!("{}", e),
+                };
                 return;
             }
         }
