@@ -48,9 +48,9 @@ Resources:
             Path: /updateStudent
             Method: POST
 
-    Policies:
-      - AmazonDynamoDBFullAccess
-      - AWSXrayWriteOnlyAccess
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - AWSXrayWriteOnlyAccess
 
 
 Outputs:
