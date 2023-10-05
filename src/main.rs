@@ -2,7 +2,9 @@ use nix::sys::wait::waitpid;
 use nix::unistd::{close, dup2, fork, pipe, ForkResult};
 use shell_commands::commands;
 use std::collections::VecDeque;
+use std::fs::OpenOptions;
 use std::io::{self, stderr, stdout, Write};
+use std::os::fd::{AsRawFd};
 use std::path::Path;
 use std::process::exit;
 use std::{env, process};
@@ -36,7 +38,7 @@ impl Shell {
             "ls" => exec_func = commands::ls_callback,
             &_ => {
                 process::Command::new(cmd)
-                    .args(&input_cmd[1..])
+                    .arg(&arg)
                     .spawn()
                     .unwrap()
                     .wait()
@@ -50,6 +52,8 @@ impl Shell {
 
     fn parse(&self, user_cmd: String) {
         let mut user_cmd = user_cmd;
+        let mut file_path = String::from("");
+        let mut file_ops ;
 
         if user_cmd.contains(">&") {
             let redir_index = user_cmd.find(">&").unwrap(); //10
@@ -81,28 +85,35 @@ impl Shell {
         }
         // user_cmd = "cat 1234  >file"
 
-        if user_cmd.contains(">") {
-            if user_cmd.contains(">>") {
-                // open file in append mode
-            } else {
-                // open file in truncate mode
+            if user_cmd.contains(">"){
+                file_ops = OpenOptions::new().create(true).write(true).to_owned();
+                let mut split: Vec<&str> = vec![];
+                if user_cmd.contains(">>"){
+
+                    split = user_cmd.split(">>").collect();
+                    file_ops.append(true);
+                } else {
+                    split = user_cmd.split(">").collect();
+                    file_ops.truncate(true);
+                    
+                }
+
+                (user_cmd, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
+                let file = file_ops.open(file_path).unwrap();
+                dup2(file.as_raw_fd(), 1).unwrap();
             }
+
             // open file
             // call dup2 on file descriptors
             // replace file redirection with ""
             // user_cmd = "cat 1234  "
-        }
+        
         //pipes
         let cmd = user_cmd.split(" | ").collect::<Vec<&str>>();
         let cmd_num = cmd.len();
-        // let cmd = user_cmd.split(" ");
 
         let mut redir_pipes = VecDeque::<(i32, i32)>::new();
 
-        // for c in cmd {
-        //     let execute_cmd = c.to_string();
-        //     self.command_executor(execute_cmd);
-        // }
 
         for i in 0..cmd_num {
             let stdout_redir = i > 0; // stdout from prev command // false
@@ -112,7 +123,6 @@ impl Shell {
                 redir_pipes.push_back(pipe().unwrap().to_owned()); // pipe for passing stdout of current cmd to next cmd
             }
 
-            // println!("{}", i);
 
             match unsafe { fork() } {
                 Ok(ForkResult::Child) => {
@@ -148,7 +158,7 @@ impl Shell {
             }
         }
 
-        // exit(0);
+        exit(0);
     }
 
     fn run(&self) {
@@ -167,16 +177,16 @@ impl Shell {
             if cmd.trim() == "exit" {
                 break;
             }
-            self.parse(cmd);
-
-            // match unsafe { fork() } {
-            //     Ok(ForkResult::Child) => {
-            //     }
-            //     Ok(ForkResult::Parent { child }) => {
-            //         // waitpid(child, None).unwrap();
-            //     }
-            //     Err(_) => {}
-            // }
+            
+            match unsafe { fork() } {
+                Ok(ForkResult::Child) => {
+                    self.parse(cmd);
+                }
+                Ok(ForkResult::Parent { child }) => {
+                    waitpid(child, None).unwrap();
+                }
+                Err(_) => {}
+            }
         }
     }
 }
