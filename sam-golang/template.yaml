@@ -49,8 +49,8 @@ Resources:
             Method: POST
 
     Policies:
-      - Action: "dynamodb:*"
-        Resource: "StudentDB"
+      - AmazonDynamoDBFullAccess
+      - AWSXrayWriteOnlyAccess
 
 
 Outputs:
