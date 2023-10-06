@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	lambda.Start(lambdaHandler);
+	lambda.Start(lambdaHandler)
 }
 
 func lambdaHandler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -18,20 +18,20 @@ func lambdaHandler(ctx context.Context, request events.APIGatewayProxyRequest) (
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 
-	dynoClient := dynamodb.New(sess);
-	
-	tableName := "StudentDB"
+	dynoClient := dynamodb.New(sess)
 
-	switch request.HTTPMethod{
+	tableName := "student-db"
+
+	switch request.HTTPMethod {
 	case "GET":
 		return getStudent(request, *dynoClient, tableName), nil
-	
+
 	case "PUT":
 		return putStudent(request, *dynoClient, tableName), nil
 
 	case "DELETE":
 		return deleteStudent(request, *dynoClient, tableName), nil
-		
+
 	case "POST":
 		return updateStudent(request, *dynoClient, tableName), nil
 
