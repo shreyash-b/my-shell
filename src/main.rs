@@ -37,7 +37,6 @@ impl Shell {
             "echo" => exec_func = commands::echo_callback,
             "cat" => exec_func = commands::cat_callback,
             "ls" => exec_func = commands::ls_callback,
-            "cd" => exec_func = commands::cd_callback,
             &_ => {
                 let child_command = process::Command::new(cmd)
                     .args(arg)
@@ -177,19 +176,35 @@ impl Shell {
                 continue;
             }
 
-            // let ret_value = 0;
-            if cmd.trim() == "exit" {
-                break;
-            }
-            
-            match unsafe { fork() } {
-                Ok(ForkResult::Child) => {
-                    self.parse(cmd);
+            // // let ret_value = 0;
+            // if cmd.trim() == "exit" {
+            //     break;
+            // }
+
+            let mut parts = cmd.trim().split_whitespace();
+            let command = parts.next().unwrap();
+            let args = parts;
+
+            match command {
+                "cd" => {
+                    let new_dir = args.peekable().peek().map_or("/", |x| *x);
+                    let root = Path::new(new_dir);
+                    if let Err(e) = env::set_current_dir(&root) {
+                        eprintln!("{}", e);
+                    }
+                },
+                "exit" => break,
+                &_ => {
+                    match unsafe { fork() } {
+                        Ok(ForkResult::Child) => {
+                            self.parse(cmd);
+                        }
+                        Ok(ForkResult::Parent { child }) => {
+                            waitpid(child, None).unwrap();
+                        }
+                        Err(_) => {}
+                    }
                 }
-                Ok(ForkResult::Parent { child }) => {
-                    waitpid(child, None).unwrap();
-                }
-                Err(_) => {}
             }
         }
     }

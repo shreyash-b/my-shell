@@ -1,10 +1,7 @@
 #[allow(dead_code, unused_variables)]
 pub mod commands {
     use std::fs;
-    use std::io::{self, stdout, stderr, Write};
-    use std::env;
-    use std::process;
-    use std::path::Path;
+    use std::io::{stdout, stderr, Write};
     // use std::io::Write;
 
     pub fn echo_callback(arg: &String) -> i32 {
@@ -12,21 +9,6 @@ pub mod commands {
         return 0;
     }
 
-    pub fn cd_callback(arg: &String) -> i32 {
-        let root = Path::new(arg);
-        if env::set_current_dir(root).is_ok() {
-            writeln!(io::stdout(), "Successfully CDed into {arg} dir").unwrap();
-            process::Command::new("pwd")
-            .spawn()
-            .unwrap()
-            .wait()
-            .unwrap();
-        }
-        if let Err(e) = env::set_current_dir(&root) {
-            eprintln!("{}", e);
-        }
-        return 0;
-    }
 
     pub fn cat_callback(arg: &String) -> i32 {
         let file_contents = match fs::read_to_string(&arg) {
