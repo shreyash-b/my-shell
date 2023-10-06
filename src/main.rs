@@ -15,7 +15,7 @@ struct Shell {
     shell_prefix: String,
 }
 
-#[allow(unused_assignments)]
+#[allow(unused_assignments, unused_must_use)]
 impl Shell {
     fn new(prefix: String) -> Self {
         return Shell {
@@ -27,6 +27,7 @@ impl Shell {
         let input_cmd = cmd.split_ascii_whitespace().collect::<Vec<_>>();
         let cmd = input_cmd[0];
         let arg = &input_cmd[1..];
+        
 
         type Func = fn(&String) -> i32;
 
@@ -37,12 +38,14 @@ impl Shell {
             "cat" => exec_func = commands::cat_callback,
             "ls" => exec_func = commands::ls_callback,
             &_ => {
-                process::Command::new(cmd)
+                let child_command = process::Command::new(cmd)
                     .args(arg)
-                    .spawn()
-                    .unwrap()
-                    .wait()
-                    .unwrap();
+                    .spawn();
+
+                match child_command {
+                    Ok(mut child_command) => { child_command.wait(); },
+                    Err(e) => eprintln!("{}", e),
+                };
                 return;
             }
         }
@@ -173,19 +176,35 @@ impl Shell {
                 continue;
             }
 
-            // let ret_value = 0;
-            if cmd.trim() == "exit" {
-                break;
-            }
-            
-            match unsafe { fork() } {
-                Ok(ForkResult::Child) => {
-                    self.parse(cmd);
+            // // let ret_value = 0;
+            // if cmd.trim() == "exit" {
+            //     break;
+            // }
+
+            let mut parts = cmd.trim().split_whitespace();
+            let command = parts.next().unwrap();
+            let args = parts;
+
+            match command {
+                "cd" => {
+                    let new_dir = args.peekable().peek().map_or("/", |x| *x);
+                    let root = Path::new(new_dir);
+                    if let Err(e) = env::set_current_dir(&root) {
+                        eprintln!("{}", e);
+                    }
+                },
+                "exit" => break,
+                &_ => {
+                    match unsafe { fork() } {
+                        Ok(ForkResult::Child) => {
+                            self.parse(cmd);
+                        }
+                        Ok(ForkResult::Parent { child }) => {
+                            waitpid(child, None).unwrap();
+                        }
+                        Err(_) => {}
+                    }
                 }
-                Ok(ForkResult::Parent { child }) => {
-                    waitpid(child, None).unwrap();
-                }
-                Err(_) => {}
             }
         }
     }

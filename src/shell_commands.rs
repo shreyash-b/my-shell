@@ -9,6 +9,7 @@ pub mod commands {
         return 0;
     }
 
+
     pub fn cat_callback(arg: &String) -> i32 {
         let file_contents = match fs::read_to_string(&arg) {
             Ok(v) => v,
