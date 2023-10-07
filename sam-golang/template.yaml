@@ -12,6 +12,24 @@ Globals:
     MemorySize: 128
 
 Resources:
+  StudDB:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+      AttributeDefinitions:
+        - AttributeName: Rollno
+          AttributeType: S
+          
+      KeySchema:
+        - AttributeName: Rollno
+          KeyType: HASH
+
+      TableName: student-db
+
+
   LambdaHandlerFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Metadata:
