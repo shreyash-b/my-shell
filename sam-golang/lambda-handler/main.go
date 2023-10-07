@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-xray-sdk-go/xray"
 )
 
 func main() {
@@ -19,21 +20,22 @@ func lambdaHandler(ctx context.Context, request events.APIGatewayProxyRequest) (
 	}))
 
 	dynoClient := dynamodb.New(sess)
+	xray.AWS(dynoClient.Client)
 
 	tableName := "student-db"
 
 	switch request.HTTPMethod {
 	case "GET":
-		return getStudent(request, *dynoClient, tableName), nil
+		return getStudent(ctx, request, *dynoClient, tableName), nil
 
 	case "PUT":
-		return putStudent(request, *dynoClient, tableName), nil
+		return putStudent(ctx, request, *dynoClient, tableName), nil
 
 	case "DELETE":
-		return deleteStudent(request, *dynoClient, tableName), nil
+		return deleteStudent(ctx, request, *dynoClient, tableName), nil
 
 	case "POST":
-		return updateStudent(request, *dynoClient, tableName), nil
+		return updateStudent(ctx, request, *dynoClient, tableName), nil
 
 	}
 
