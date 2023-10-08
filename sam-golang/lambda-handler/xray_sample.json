@@ -1,0 +1,226 @@
+[
+    {
+        "AccountId": null,
+        "DurationHistogram": [
+            {
+                "Count": 1,
+                "Value": 1.068
+            }
+        ],
+        "Edges": [
+            {
+                "Aliases": [],
+                "EdgeType": null,
+                "EndTime": null,
+                "ReceivedEventAgeHistogram": null,
+                "ReferenceId": 1,
+                "ResponseTimeHistogram": [
+                    {
+                        "Count": 1,
+                        "Value": 1.068
+                    }
+                ],
+                "StartTime": null,
+                "SummaryStatistics": {
+                    "ErrorStatistics": {
+                        "OtherCount": 0,
+                        "ThrottleCount": 0,
+                        "TotalCount": 0
+                    },
+                    "FaultStatistics": {
+                        "OtherCount": 0,
+                        "TotalCount": 0
+                    },
+                    "OkCount": 1,
+                    "TotalCount": 1,
+                    "TotalResponseTime": 1.068
+                }
+            }
+        ],
+        "EndTime": null,
+        "Name": "sam-app-LambdaHandlerFunction-heYs7YUDRBj3",
+        "Names": [
+            "sam-app-LambdaHandlerFunction-heYs7YUDRBj3"
+        ],
+        "ReferenceId": 0,
+        "ResponseTimeHistogram": [
+            {
+                "Count": 1,
+                "Value": 1.068
+            }
+        ],
+        "Root": true,
+        "StartTime": null,
+        "State": "active",
+        "SummaryStatistics": {
+            "ErrorStatistics": {
+                "OtherCount": 0,
+                "ThrottleCount": 0,
+                "TotalCount": 0
+            },
+            "FaultStatistics": {
+                "OtherCount": 0,
+                "TotalCount": 0
+            },
+            "OkCount": 1,
+            "TotalCount": 1,
+            "TotalResponseTime": 1.068
+        },
+        "Type": "AWS::Lambda"
+    },
+    {
+        "AccountId": "634696659336",
+        "DurationHistogram": [
+            {
+                "Count": 1,
+                "Value": 0.91
+            }
+        ],
+        "Edges": [
+            {
+                "Aliases": [],
+                "EdgeType": null,
+                "EndTime": null,
+                "ReceivedEventAgeHistogram": null,
+                "ReferenceId": 3,
+                "ResponseTimeHistogram": [
+                    {
+                        "Count": 1,
+                        "Value": 0.661
+                    }
+                ],
+                "StartTime": null,
+                "SummaryStatistics": {
+                    "ErrorStatistics": {
+                        "OtherCount": 1,
+                        "ThrottleCount": 0,
+                        "TotalCount": 1
+                    },
+                    "FaultStatistics": {
+                        "OtherCount": 0,
+                        "TotalCount": 0
+                    },
+                    "OkCount": 0,
+                    "TotalCount": 1,
+                    "TotalResponseTime": 0.661
+                }
+            }
+        ],
+        "EndTime": null,
+        "Name": "sam-app-LambdaHandlerFunction-heYs7YUDRBj3",
+        "Names": [
+            "sam-app-LambdaHandlerFunction-heYs7YUDRBj3"
+        ],
+        "ReferenceId": 1,
+        "ResponseTimeHistogram": [
+            {
+                "Count": 1,
+                "Value": 0.769
+            }
+        ],
+        "Root": null,
+        "StartTime": null,
+        "State": "active",
+        "SummaryStatistics": {
+            "ErrorStatistics": {
+                "OtherCount": 0,
+                "ThrottleCount": 0,
+                "TotalCount": 0
+            },
+            "FaultStatistics": {
+                "OtherCount": 0,
+                "TotalCount": 0
+            },
+            "OkCount": 1,
+            "TotalCount": 1,
+            "TotalResponseTime": 0.769
+        },
+        "Type": "AWS::Lambda::Function"
+    },
+    {
+        "AccountId": null,
+        "DurationHistogram": null,
+        "Edges": [
+            {
+                "Aliases": [],
+                "EdgeType": null,
+                "EndTime": null,
+                "ReceivedEventAgeHistogram": null,
+                "ReferenceId": 0,
+                "ResponseTimeHistogram": [
+                    {
+                        "Count": 1,
+                        "Value": 1.068
+                    }
+                ],
+                "StartTime": null,
+                "SummaryStatistics": {
+                    "ErrorStatistics": {
+                        "OtherCount": 0,
+                        "ThrottleCount": 0,
+                        "TotalCount": 0
+                    },
+                    "FaultStatistics": {
+                        "OtherCount": 0,
+                        "TotalCount": 0
+                    },
+                    "OkCount": 1,
+                    "TotalCount": 1,
+                    "TotalResponseTime": 1.068
+                }
+            }
+        ],
+        "EndTime": null,
+        "Name": "sam-app-LambdaHandlerFunction-heYs7YUDRBj3",
+        "Names": [
+            "sam-app-LambdaHandlerFunction-heYs7YUDRBj3"
+        ],
+        "ReferenceId": 2,
+        "ResponseTimeHistogram": null,
+        "Root": null,
+        "StartTime": null,
+        "State": "unknown",
+        "SummaryStatistics": null,
+        "Type": "client"
+    },
+    {
+        "AccountId": null,
+        "DurationHistogram": [
+            {
+                "Count": 1,
+                "Value": 0.661
+            }
+        ],
+        "Edges": [],
+        "EndTime": null,
+        "Name": "student-db",
+        "Names": [
+            "student-db"
+        ],
+        "ReferenceId": 3,
+        "ResponseTimeHistogram": [
+            {
+                "Count": 1,
+                "Value": 0.661
+            }
+        ],
+        "Root": null,
+        "StartTime": null,
+        "State": "unknown",
+        "SummaryStatistics": {
+            "ErrorStatistics": {
+                "OtherCount": 1,
+                "ThrottleCount": 0,
+                "TotalCount": 1
+            },
+            "FaultStatistics": {
+                "OtherCount": 0,
+                "TotalCount": 0
+            },
+            "OkCount": 0,
+            "TotalCount": 1,
+            "TotalResponseTime": 0.661
+        },
+        "Type": "AWS::DynamoDB::Table"
+    }
+]
