@@ -171,10 +171,13 @@ impl Shell {
             io::stdout().flush().unwrap();
             io::stdin().read_line(&mut cmd).unwrap();
 
-            if cmd.len() < 2 {
+            if cmd.len() == 0{
+                // EOF
+                break;
+            } else if cmd.len() < 2 {
                 //newline
                 continue;
-            }
+            } 
 
             // // let ret_value = 0;
             // if cmd.trim() == "exit" {
