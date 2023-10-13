@@ -1,8 +1,6 @@
-//#[allow(dead_code, unused_variables)]
 pub mod commands {
     use std::fs;
     use std::io::{stdout, stderr, Write};
-    // use std::io::Write;
 
     pub fn echo_callback(arg: &String) -> i32 {
         writeln!(stdout(), "{}", arg).expect("Unable to write");
