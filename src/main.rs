@@ -11,14 +11,14 @@ use std::{env, process};
 
 mod shell_commands;
 
-struct custom_Shell {
+struct CustomShell {
     shell_prefix: String,
 }
 
-#[allow(unused_assignments, unused_must_use)]
-impl custom_Shell {
+//#[allow(unused_assignments, unused_must_use)]
+impl CustomShell {
     fn new(prefix: String) -> Self {
-        return custom_Shell {
+        return CustomShell {
             shell_prefix: prefix,
         };
     }
@@ -31,35 +31,32 @@ impl custom_Shell {
 
         type Func = fn(&String) -> i32;
 
-        let mut exec_func: Func = commands::echo_callback; // dummy value
+        let mut _exec_func: Func = commands::echo_callback; // dummy value
 
         match cmd {
-            "echo" => exec_func = commands::echo_callback,
-            "cat" => exec_func = commands::cat_callback,
-            "ls" => exec_func = commands::ls_callback,
+            "echo" => _exec_func = commands::echo_callback,
+            "cat" => _exec_func = commands::cat_callback,
+            "ls" => _exec_func = commands::ls_callback,
             &_ => {
                 let child_command = process::Command::new(cmd)
                     .args(arg)
                     .spawn();
 
                 match child_command {
-                    Ok(mut child_command) => { child_command.wait(); },
+                    Ok(mut child_command) => { let _ = child_command.wait(); },
                     Err(e) => eprintln!("{}", e),
                 };
                 return;
             }
         }
 
-        exec_func(&arg.join(" "));
+        _exec_func(&arg.join(" "));
     }
 
-    fn parse(&self, user_cmd: String) {
-        let mut user_cmd = user_cmd;
-        let mut file_path = String::from("");
-        let mut file_ops ;
 
-        if user_cmd.contains(">&") {
-            let redir_index = user_cmd.find(">&").unwrap(); //10
+    fn redirect(user_cmd: String) -> String {
+        let mut user_cmd = user_cmd;
+        let redir_index = user_cmd.find(">&").unwrap(); //10
                                                             // toFix: indexing here
             let from_fd = &user_cmd[redir_index - 1..redir_index]; //1
             match from_fd {
@@ -75,41 +72,58 @@ impl custom_Shell {
                     panic!("invalid fd for redirect");
                 }
             }
-            // execute_cmd.remove(execute_cmd[redir_index-1..redir_index+3]);
-            user_cmd.replace_range(redir_index - 1..redir_index + 3, "");
+        // execute_cmd.remove(execute_cmd[redir_index-1..redir_index+3]);
+        user_cmd.replace_range(redir_index - 1..redir_index + 3, "");
 
-            if user_cmd.contains(">&") {
-                writeln!(stderr(), "[ERROR] Invalid use of redirection!!").unwrap();
-                exit(-1);
+        if user_cmd.contains(">&") {
+            writeln!(stderr(), "[ERROR] Invalid use of redirection!!").unwrap();
+            exit(-1);
+        }
+        return user_cmd;
+        // cat 1234  >file
+        // execute_cmd = command.clone();
+    }
+
+    fn output_redirect(user_cmd: String) -> String {
+        let mut user_cmd = user_cmd;
+        let mut file_ops ;
+        let file_path: String;
+        file_ops = OpenOptions::new().create(true).write(true).to_owned();
+            let mut _split: Vec<&str> = Vec::new();
+            if user_cmd.contains(">>"){
+
+                _split = user_cmd.split(">>").collect();
+                file_ops.append(true);
+            } else {
+                _split = user_cmd.split(">").collect();
+                file_ops.truncate(true);
+                
             }
 
-            // cat 1234  >file
-            // execute_cmd = command.clone();
+        (user_cmd, file_path) = (_split[0].trim().to_string(), _split[1].trim().to_string());
+        let file = file_ops.open(file_path).unwrap();
+        dup2(file.as_raw_fd(), 1).unwrap();
+        return user_cmd;
+    }
+
+    fn parse(&self, user_cmd: String) {
+        let mut user_cmd = user_cmd;
+        //let file_path: String;
+        //let mut file_ops ;
+
+        if user_cmd.contains(">&") {
+            user_cmd = Self::redirect(user_cmd);
         }
         // user_cmd = "cat 1234  >file"
 
-            if user_cmd.contains(">"){
-                file_ops = OpenOptions::new().create(true).write(true).to_owned();
-                let mut split: Vec<&str> = vec![];
-                if user_cmd.contains(">>"){
+        if user_cmd.contains(">"){
+            user_cmd = Self::output_redirect(user_cmd);
+        }
 
-                    split = user_cmd.split(">>").collect();
-                    file_ops.append(true);
-                } else {
-                    split = user_cmd.split(">").collect();
-                    file_ops.truncate(true);
-                    
-                }
-
-                (user_cmd, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
-                let file = file_ops.open(file_path).unwrap();
-                dup2(file.as_raw_fd(), 1).unwrap();
-            }
-
-            // open file
-            // call dup2 on file descriptors
-            // replace file redirection with ""
-            // user_cmd = "cat 1234  "
+        // open file
+        // call dup2 on file descriptors
+        // replace file redirection with ""
+        // user_cmd = "cat 1234  "
         
         //pipes
         let cmd = user_cmd.split(" | ").collect::<Vec<&str>>();
@@ -166,15 +180,15 @@ impl custom_Shell {
 
     fn run(&self) {
         loop {
-            let mut cmd = String::new();
+            let mut user_cmd = String::new();
             write!(stdout(), "{}> ", self.shell_prefix).unwrap();
             io::stdout().flush().unwrap();
-            io::stdin().read_line(&mut cmd).unwrap();
+            io::stdin().read_line(&mut user_cmd).unwrap();
 
-            if cmd.len() == 0{
+            if user_cmd.len() == 0{
                 // EOF
                 break;
-            } else if cmd.len() < 2 {
+            } else if user_cmd.len() < 2 {
                 //newline
                 continue;
             } 
@@ -184,7 +198,7 @@ impl custom_Shell {
             //     break;
             // }
 
-            let mut parts = cmd.trim().split_whitespace();
+            let mut parts = user_cmd.trim().split_whitespace();
             let command = parts.next().unwrap();
             let args = parts;
 
@@ -200,7 +214,7 @@ impl custom_Shell {
                 &_ => {
                     match unsafe { fork() } {
                         Ok(ForkResult::Child) => {
-                            self.parse(cmd);
+                            self.parse(user_cmd);
                         }
                         Ok(ForkResult::Parent { child }) => {
                             waitpid(child, None).unwrap();
@@ -216,9 +230,9 @@ impl custom_Shell {
 fn main() {
     let playground_path = Path::new("playground/");
     if env::set_current_dir(playground_path).is_ok() {
-        writeln!(io::stdout(), "Successfully CDed into playground dir").unwrap();
+        writeln!(io::stdout(), "Current directory set as Playground directory").unwrap();
     }
 
-    let my_shell = custom_Shell::new(String::from("my-shell"));
+    let my_shell = CustomShell::new(String::from("my-shell"));
     my_shell.run();
 }

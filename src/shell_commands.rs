@@ -1,4 +1,4 @@
-#[allow(dead_code, unused_variables)]
+//#[allow(dead_code, unused_variables)]
 pub mod commands {
     use std::fs;
     use std::io::{stdout, stderr, Write};
@@ -22,7 +22,7 @@ pub mod commands {
         return 0;
     }
 
-    pub fn ls_callback(arg: &String) -> i32 {
+    pub fn ls_callback(_arg: &String) -> i32 {
         let paths = fs::read_dir("./").unwrap();
 
         for path in paths {
