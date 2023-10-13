@@ -11,14 +11,14 @@ use std::{env, process};
 
 mod shell_commands;
 
-struct custom_Shell {
+struct Shell {
     shell_prefix: String,
 }
 
 #[allow(unused_assignments, unused_must_use)]
-impl custom_Shell {
+impl Shell {
     fn new(prefix: String) -> Self {
-        return custom_Shell {
+        return Shell {
             shell_prefix: prefix,
         };
     }
@@ -219,6 +219,6 @@ fn main() {
         writeln!(io::stdout(), "Successfully CDed into playground dir").unwrap();
     }
 
-    let my_shell = custom_Shell::new(String::from("my-shell"));
+    let my_shell = Shell::new(String::from("my-shell"));
     my_shell.run();
 }
