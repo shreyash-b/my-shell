@@ -1,6 +1,7 @@
 use nix::sys::wait::waitpid;
 use nix::unistd::{close, dup2, fork, pipe, ForkResult};
 use shell_commands::commands;
+use std::borrow::BorrowMut;
 use std::collections::VecDeque;
 use std::fs::OpenOptions;
 use std::io::{self, stderr, stdout, Write};
@@ -53,58 +54,63 @@ impl Shell {
         exec_func(&arg.join(" "));
     }
 
-    fn parse(&self, user_cmd: String) {
+    fn stream_redirections(&self, user_cmd: String) -> String{
         let mut user_cmd = user_cmd;
-        let mut file_path = String::from("");
-        let mut file_ops ;
 
-        if user_cmd.contains(">&") {
-            let redir_index = user_cmd.find(">&").unwrap(); //10
-                                                            // toFix: indexing here
-            let from_fd = &user_cmd[redir_index - 1..redir_index]; //1
+        if user_cmd.contains(">&"){
+            let redir_index = user_cmd.find(">&").unwrap();
+            let from_fd = &user_cmd[redir_index - 1..redir_index];
             match from_fd {
                 "1" => {
-                    // will execute if 1>&2
-                    dup2(2, 1).unwrap();
+                    dup2(2,1).unwrap();
                 }
                 "2" => {
-                    // will execute if 2>&1
                     dup2(1, 2).unwrap();
                 }
                 &_ => {
-                    panic!("invalid fd for redirect");
+                    panic!("Invalid FD");
                 }
             }
-            // execute_cmd.remove(execute_cmd[redir_index-1..redir_index+3]);
-            user_cmd.replace_range(redir_index - 1..redir_index + 3, "");
+            user_cmd.replace_range(redir_index-1..redir_index+3, "");
 
             if user_cmd.contains(">&") {
-                writeln!(stderr(), "[ERROR] Invalid use of redirection!!").unwrap();
+                writeln!(stderr(), "[ERROR] Invalid use of redirection");
                 exit(-1);
             }
-
-            // cat 1234  >file
-            // execute_cmd = command.clone();
         }
-        // user_cmd = "cat 1234  >file"
 
-            if user_cmd.contains(">"){
-                file_ops = OpenOptions::new().create(true).write(true).to_owned();
-                let mut split: Vec<&str> = vec![];
-                if user_cmd.contains(">>"){
+        return user_cmd
+    }
 
-                    split = user_cmd.split(">>").collect();
-                    file_ops.append(true);
-                } else {
-                    split = user_cmd.split(">").collect();
-                    file_ops.truncate(true);
-                    
-                }
-
-                (user_cmd, file_path) = (split[0].trim().to_string(), split[1].trim().to_string());
-                let file = file_ops.open(file_path).unwrap();
-                dup2(file.as_raw_fd(), 1).unwrap();
+    fn redirections_file(&self, user_cmd: &str) -> String{
+        let mut user_cmd = user_cmd;
+        let mut file_path = String::from("");
+        let mut file_ops;
+        if user_cmd.contains(">") {
+            file_ops = OpenOptions::new().create(true).write(true).to_owned();
+            let mut split : Vec<&str> = vec![];
+            if user_cmd.contains(">>"){
+                split = user_cmd.split(">>").borrow_mut().collect();
+                file_ops.append(true);
+            } else {
+                split = user_cmd.split(">").collect();
+                file_ops.truncate(true);
             }
+            
+            user_cmd = split[0].trim();
+            file_path = split[1].trim().to_string();
+            let file = file_ops.open(file_path).unwrap();
+            dup2(file.as_raw_fd(), 1).unwrap();
+        }
+
+        return user_cmd.to_string();
+    }
+
+    fn parse(&self, mut user_cmd: String) {
+        
+        user_cmd = self.stream_redirections(user_cmd);
+        // user_cmd = "cat 1234  >file"
+        user_cmd = self.redirections_file(&user_cmd);
 
             // open file
             // call dup2 on file descriptors
@@ -112,7 +118,7 @@ impl Shell {
             // user_cmd = "cat 1234  "
         
         //pipes
-        let cmd = user_cmd.split(" | ").collect::<Vec<&str>>();
+        let cmd = user_cmd.split(" | ").borrow_mut().collect::<Vec<&str>>();
         let cmd_num = cmd.len();
 
         let mut redir_pipes = VecDeque::<(i32, i32)>::new();
