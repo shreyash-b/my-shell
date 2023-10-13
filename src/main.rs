@@ -10,10 +10,10 @@ use std::process::exit;
 use std::{env, process};
 
 mod shell_commands;
-
 struct CustomShell {
     shell_prefix: String,
 }
+
 impl CustomShell {
     fn new(prefix: String) -> Self {                      //Shell prompter
         return CustomShell {
@@ -49,7 +49,7 @@ impl CustomShell {
     }
 
 
-    fn error_logging(user_cmd: String) -> String {                        //Function for >&                  
+    fn error_logging(user_cmd: String) -> String {                   // Function for >&                  
         let mut user_cmd = user_cmd;
         let redir_index = user_cmd.find(">&").unwrap();
         let from_fd = &user_cmd[redir_index - 1..redir_index];
@@ -102,8 +102,6 @@ impl CustomShell {
 
     fn parse(&self, user_cmd: String) {
         let mut user_cmd = user_cmd;
-        //let file_path: String;
-        //let mut file_ops ;
 
         if user_cmd.contains(">&") {
             user_cmd = Self::error_logging(user_cmd);
