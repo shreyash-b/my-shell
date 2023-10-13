@@ -212,15 +212,7 @@ impl CustomShell {
                 },
                 "exit" => break,
                 &_ => {
-                    match unsafe { fork() } {
-                        Ok(ForkResult::Child) => {
-                            self.parse(user_cmd);
-                        }
-                        Ok(ForkResult::Parent { child }) => {
-                            waitpid(child, None).unwrap();
-                        }
-                        Err(_) => {}
-                    }
+                    self.parse(user_cmd);
                 }
             }
         }
